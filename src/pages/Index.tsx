@@ -9,6 +9,21 @@ type PetMood = 'happy' | 'focused' | 'sleep' | 'angry' | 'celebrate';
 type TimerStatus = 'idle' | 'running' | 'paused';
 type Tab = 'timer' | 'stats' | 'pets' | 'profile' | 'premium';
 
+interface Subtask {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+interface BigTask {
+  id: string;
+  title: string;
+  subtasks: Subtask[];
+  createdAt: number;
+}
+
+const MAX_FREE_TASKS = 4;
+
 const FOCUS_TIME = 25 * 60;
 const SHORT_BREAK = 5 * 60;
 
@@ -44,8 +59,31 @@ export default function Index() {
   const [lastActivity, setLastActivity] = useState(Date.now());
   const [statsView, setStatsView] = useState<'week' | 'month'>('week');
   const [showRedFlash, setShowRedFlash] = useState(false);
+  const [isPremium] = useState(false);
+  const [bigTasks, setBigTasks] = useState<BigTask[]>([
+    {
+      id: '1',
+      title: 'Выучить английский',
+      subtasks: [
+        { id: '1-1', text: 'Пройти урок 1', completed: true },
+        { id: '1-2', text: 'Пройти урок 2', completed: true },
+        { id: '1-3', text: 'Пройти урок 3', completed: false },
+        { id: '1-4', text: 'Сдать тест', completed: false }
+      ],
+      createdAt: Date.now()
+    }
+  ]);
+  const [activeTaskId, setActiveTaskId] = useState<string>('1');
+  const [showTaskDialog, setShowTaskDialog] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newSubtaskText, setNewSubtaskText] = useState('');
   const weekData = generateWeekData();
   const monthData = generateMonthData();
+
+  const activeTask = bigTasks.find(t => t.id === activeTaskId);
+  const completedSubtasks = activeTask?.subtasks.filter(st => st.completed).length || 0;
+  const totalSubtasks = activeTask?.subtasks.length || 0;
+  const taskProgress = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0;
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -57,7 +95,26 @@ export default function Index() {
             setTimerStatus('idle');
             setPetMood('celebrate');
             setSessionsCompleted((s) => s + 1);
-            toast.success('Сессия завершена! Отличная работа! 🎉');
+            if (activeTask && totalSubtasks > 0) {
+              const currentSubtask = activeTask.subtasks.find(st => !st.completed);
+              if (currentSubtask) {
+                setBigTasks(prev => prev.map(task => 
+                  task.id === activeTaskId 
+                    ? {
+                        ...task,
+                        subtasks: task.subtasks.map(st => 
+                          st.id === currentSubtask.id ? { ...st, completed: true } : st
+                        )
+                      }
+                    : task
+                ));
+                toast.success(`Сессия завершена! "${currentSubtask.text}" выполнена! 🎉`);
+              } else {
+                toast.success('Сессия завершена! Отличная работа! 🎉');
+              }
+            } else {
+              toast.success('Сессия завершена! Отличная работа! 🎉');
+            }
             setTimeout(() => setPetMood('happy'), 1500);
             return FOCUS_TIME;
           }
@@ -167,6 +224,74 @@ export default function Index() {
     }
   };
 
+  const handleAddTask = () => {
+    if (!newTaskTitle.trim()) {
+      toast.error('Введите название задачи!');
+      return;
+    }
+    
+    if (!isPremium && bigTasks.length >= MAX_FREE_TASKS) {
+      toast.error('В бесплатной версии доступно только 4 задачи. Оформите Premium!');
+      setActiveTab('premium');
+      return;
+    }
+
+    const newTask: BigTask = {
+      id: Date.now().toString(),
+      title: newTaskTitle,
+      subtasks: [],
+      createdAt: Date.now()
+    };
+
+    setBigTasks(prev => [...prev, newTask]);
+    setActiveTaskId(newTask.id);
+    setNewTaskTitle('');
+    setShowTaskDialog(false);
+    toast.success('Задача создана!');
+  };
+
+  const handleAddSubtask = (taskId: string) => {
+    if (!newSubtaskText.trim()) {
+      toast.error('Введите подзадачу!');
+      return;
+    }
+
+    const newSubtask: Subtask = {
+      id: `${taskId}-${Date.now()}`,
+      text: newSubtaskText,
+      completed: false
+    };
+
+    setBigTasks(prev => prev.map(task => 
+      task.id === taskId 
+        ? { ...task, subtasks: [...task.subtasks, newSubtask] }
+        : task
+    ));
+    setNewSubtaskText('');
+    toast.success('Подзадача добавлена!');
+  };
+
+  const handleToggleSubtask = (taskId: string, subtaskId: string) => {
+    setBigTasks(prev => prev.map(task => 
+      task.id === taskId 
+        ? {
+            ...task,
+            subtasks: task.subtasks.map(st => 
+              st.id === subtaskId ? { ...st, completed: !st.completed } : st
+            )
+          }
+        : task
+    ));
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    setBigTasks(prev => prev.filter(t => t.id !== taskId));
+    if (activeTaskId === taskId && bigTasks.length > 1) {
+      setActiveTaskId(bigTasks.find(t => t.id !== taskId)?.id || '');
+    }
+    toast.success('Задача удалена!');
+  };
+
   return (
     <div className={`min-h-screen bg-gradient-to-br from-secondary via-background to-muted transition-all duration-300 ${
       showRedFlash ? 'animate-red-flash' : ''
@@ -175,6 +300,77 @@ export default function Index() {
         
         {activeTab === 'timer' && (
           <>
+            {activeTask && (
+              <Card className="p-4 shadow-lg border-0 bg-white/80 backdrop-blur">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-foreground truncate flex-1">{activeTask.title}</h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowTaskDialog(true)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Icon name="ChevronDown" size={16} />
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Прогресс</span>
+                      <span className="font-medium text-foreground">{completedSubtasks}/{totalSubtasks}</span>
+                    </div>
+                    <Progress value={taskProgress} className="h-3" />
+                  </div>
+
+                  {totalSubtasks > 0 && (
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {activeTask.subtasks.map((subtask) => (
+                        <div
+                          key={subtask.id}
+                          className="flex items-center gap-2 text-sm"
+                        >
+                          <button
+                            onClick={() => handleToggleSubtask(activeTask.id, subtask.id)}
+                            className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                              subtask.completed 
+                                ? 'bg-primary border-primary' 
+                                : 'border-muted-foreground'
+                            }`}
+                          >
+                            {subtask.completed && (
+                              <Icon name="Check" size={12} className="text-primary-foreground" />
+                            )}
+                          </button>
+                          <span className={subtask.completed ? 'line-through text-muted-foreground' : 'text-foreground'}>
+                            {subtask.text}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 pt-2">
+                    <input
+                      type="text"
+                      value={newSubtaskText}
+                      onChange={(e) => setNewSubtaskText(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask(activeTask.id)}
+                      placeholder="Добавить подзадачу..."
+                      className="flex-1 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <Button
+                      onClick={() => handleAddSubtask(activeTask.id)}
+                      size="sm"
+                      className="bg-primary text-primary-foreground"
+                    >
+                      <Icon name="Plus" size={16} />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            )}
+
             <Card className="p-8 shadow-lg border-0 bg-white/80 backdrop-blur">
               <div className="flex flex-col items-center space-y-6">
                 
@@ -284,6 +480,88 @@ export default function Index() {
               </div>
             </Card>
           </>
+        )}
+
+        {showTaskDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowTaskDialog(false)}>
+            <Card className="w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold">Мои задачи</h2>
+                <Button variant="ghost" size="sm" onClick={() => setShowTaskDialog(false)}>
+                  <Icon name="X" size={20} />
+                </Button>
+              </div>
+
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {bigTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className={`p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                      activeTaskId === task.id 
+                        ? 'border-primary bg-primary/10' 
+                        : 'border-muted hover:border-primary/50'
+                    }`}
+                    onClick={() => {
+                      setActiveTaskId(task.id);
+                      setShowTaskDialog(false);
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="font-medium text-foreground">{task.title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {task.subtasks.filter(st => st.completed).length}/{task.subtasks.length} выполнено
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTask(task.id);
+                        }}
+                        className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
+                      >
+                        <Icon name="Trash2" size={16} />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {(!isPremium && bigTasks.length >= MAX_FREE_TASKS) ? (
+                <div className="p-3 bg-accent/10 rounded-lg border border-accent">
+                  <div className="text-sm text-foreground font-medium">
+                    Лимит бесплатных задач: {bigTasks.length}/{MAX_FREE_TASKS}
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setShowTaskDialog(false);
+                      setActiveTab('premium');
+                    }}
+                    className="w-full mt-2 bg-primary text-primary-foreground"
+                    size="sm"
+                  >
+                    Оформить Premium
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newTaskTitle}
+                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
+                    placeholder="Новая задача..."
+                    className="flex-1 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <Button onClick={handleAddTask} className="bg-primary text-primary-foreground">
+                    <Icon name="Plus" size={20} />
+                  </Button>
+                </div>
+              )}
+            </Card>
+          </div>
         )}
 
         {activeTab === 'stats' && (
