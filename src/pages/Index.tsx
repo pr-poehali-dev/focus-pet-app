@@ -195,13 +195,13 @@ export default function Index() {
 
   const progress = ((FOCUS_TIME - timeLeft) / FOCUS_TIME) * 100;
 
-  const getPetEmoji = () => {
+  const getPetImage = () => {
     switch (petMood) {
-      case 'happy': return '🐶';
-      case 'focused': return '🐱';
-      case 'sleep': return '🐼';
-      case 'angry': return '😡';
-      case 'celebrate': return '🎉';
+      case 'happy': return 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/e4e6c796-0757-4dd9-9769-c580dc64b612.jpg';
+      case 'focused': return 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/0fe02abd-035b-4ec7-8c8f-e0e7e05983fc.jpg';
+      case 'sleep': return 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/2b842f8a-6d81-4db3-bf16-c17cc2cf0bf3.jpg';
+      case 'angry': return 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/ffff47ba-b2db-4d4d-8451-27d956d48686.jpg';
+      case 'celebrate': return 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/b3e35200-f6ca-46cf-b7b6-396fa3509d7d.jpg';
     }
   };
 
@@ -375,7 +375,7 @@ export default function Index() {
               <div className="flex flex-col items-center space-y-6">
                 
                 <div className="relative">
-                  <div className={`w-40 h-40 rounded-full bg-gradient-to-br ${
+                  <div className={`w-48 h-48 rounded-3xl bg-gradient-to-br ${
                     petMood === 'angry' 
                       ? 'from-red-200 to-orange-200' 
                       : petMood === 'celebrate'
@@ -383,12 +383,15 @@ export default function Index() {
                       : petMood === 'focused'
                       ? 'from-primary/30 to-primary/10'
                       : 'from-secondary to-muted'
-                  } flex items-center justify-center transition-colors duration-300 ${
+                  } flex items-center justify-center transition-colors duration-300 overflow-hidden ${
                     petMood === 'focused' ? 'animate-pulse-glow' : ''
                   }`}>
-                    <div className={`text-7xl ${getPetAnimation()}`} key={petMood}>
-                      {getPetEmoji()}
-                    </div>
+                    <img 
+                      src={getPetImage()} 
+                      alt={getPetLabel()}
+                      className={`w-full h-full object-contain ${getPetAnimation()}`}
+                      key={petMood}
+                    />
                   </div>
                   <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1 ${
                     petMood === 'angry' ? 'bg-red-100' : petMood === 'celebrate' ? 'bg-accent' : 'bg-white'
