@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
 
-type PetMood = 'happy' | 'focused' | 'sleep' | 'angry';
+type PetMood = 'happy' | 'focused' | 'sleep' | 'angry' | 'celebrate';
 type TimerStatus = 'idle' | 'running' | 'paused';
 type Tab = 'timer' | 'stats' | 'pets' | 'profile' | 'premium';
 
@@ -43,6 +43,7 @@ export default function Index() {
   const [isDistracted, setIsDistracted] = useState(false);
   const [lastActivity, setLastActivity] = useState(Date.now());
   const [statsView, setStatsView] = useState<'week' | 'month'>('week');
+  const [showRedFlash, setShowRedFlash] = useState(false);
   const weekData = generateWeekData();
   const monthData = generateMonthData();
 
@@ -54,9 +55,10 @@ export default function Index() {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             setTimerStatus('idle');
-            setPetMood('happy');
+            setPetMood('celebrate');
             setSessionsCompleted((s) => s + 1);
             toast.success('Сессия завершена! Отличная работа! 🎉');
+            setTimeout(() => setPetMood('happy'), 1500);
             return FOCUS_TIME;
           }
           return prev - 1;
@@ -81,6 +83,8 @@ export default function Index() {
       if (document.hidden && timerStatus === 'running') {
         setIsDistracted(true);
         setPetMood('angry');
+        setShowRedFlash(true);
+        setTimeout(() => setShowRedFlash(false), 1000);
         toast.error('Эй! Куда ушёл? Питомец злится! 😠');
       }
     };
@@ -90,6 +94,8 @@ export default function Index() {
         if (!isDistracted) {
           setIsDistracted(true);
           setPetMood('angry');
+          setShowRedFlash(true);
+          setTimeout(() => setShowRedFlash(false), 1000);
           toast.error('Мышка не двигается! Ты там? 😤');
         }
       }
@@ -138,6 +144,7 @@ export default function Index() {
       case 'focused': return '🐱';
       case 'sleep': return '🐼';
       case 'angry': return '😡';
+      case 'celebrate': return '🎉';
     }
   };
 
@@ -147,6 +154,7 @@ export default function Index() {
       case 'focused': return 'Focused';
       case 'sleep': return 'Sleep';
       case 'angry': return 'Angry!';
+      case 'celebrate': return 'Success!';
     }
   };
 
@@ -154,12 +162,15 @@ export default function Index() {
     switch (petMood) {
       case 'angry': return 'animate-shake';
       case 'focused': return 'animate-pulse-glow';
+      case 'celebrate': return 'animate-celebrate';
       default: return 'animate-bounce-in';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-orange-50">
+    <div className={`min-h-screen bg-gradient-to-br from-secondary via-background to-muted transition-all duration-300 ${
+      showRedFlash ? 'animate-red-flash' : ''
+    }`}>
       <div className="container max-w-md mx-auto px-4 py-6 space-y-6">
         
         {activeTab === 'timer' && (
@@ -171,7 +182,11 @@ export default function Index() {
                   <div className={`w-40 h-40 rounded-full bg-gradient-to-br ${
                     petMood === 'angry' 
                       ? 'from-red-200 to-orange-200' 
-                      : 'from-primary/20 to-secondary/20'
+                      : petMood === 'celebrate'
+                      ? 'from-accent/30 to-accent/10'
+                      : petMood === 'focused'
+                      ? 'from-primary/30 to-primary/10'
+                      : 'from-secondary to-muted'
                   } flex items-center justify-center transition-colors duration-300 ${
                     petMood === 'focused' ? 'animate-pulse-glow' : ''
                   }`}>
@@ -180,10 +195,10 @@ export default function Index() {
                     </div>
                   </div>
                   <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1 ${
-                    petMood === 'angry' ? 'bg-red-100' : 'bg-white'
+                    petMood === 'angry' ? 'bg-red-100' : petMood === 'celebrate' ? 'bg-accent' : 'bg-white'
                   } rounded-full shadow-md transition-colors duration-300`}>
                     <span className={`text-xs font-medium ${
-                      petMood === 'angry' ? 'text-red-600' : 'text-muted-foreground'
+                      petMood === 'angry' ? 'text-red-600' : petMood === 'celebrate' ? 'text-accent-foreground font-bold' : 'text-muted-foreground'
                     }`}>{getPetLabel()}</span>
                   </div>
                 </div>
@@ -208,7 +223,7 @@ export default function Index() {
                   {timerStatus === 'idle' && (
                     <Button 
                       onClick={handleStart}
-                      className="flex-1 h-14 text-lg font-semibold bg-primary hover:bg-primary/90"
+                      className="flex-1 h-14 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                       Start
                     </Button>
@@ -237,7 +252,7 @@ export default function Index() {
                     <>
                       <Button 
                         onClick={handleStart}
-                        className="flex-1 h-14 text-lg font-semibold bg-primary hover:bg-primary/90"
+                        className="flex-1 h-14 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
                       >
                         Resume
                       </Button>
@@ -257,12 +272,12 @@ export default function Index() {
             <Card className="p-4 shadow-lg border-0 bg-white/80 backdrop-blur">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
-                    <Icon name="Trophy" size={24} className="text-accent" />
+                  <div className="w-12 h-12 rounded-full bg-accent/30 flex items-center justify-center">
+                    <Icon name="Trophy" size={24} className="text-accent-foreground" />
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Sessions Today</div>
-                    <div className="text-2xl font-bold">{sessionsCompleted}</div>
+                    <div className="text-2xl font-bold text-foreground">{sessionsCompleted}</div>
                   </div>
                 </div>
                 <div className="text-4xl">🍅</div>
@@ -346,18 +361,18 @@ export default function Index() {
             <div className="text-center space-y-6">
               <h2 className="text-2xl font-bold">Your Pets</h2>
               <div className="grid grid-cols-3 gap-4">
-                <div className="p-4 rounded-xl bg-gradient-to-br from-orange-100 to-orange-50 border-2 border-orange-200">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-accent/30 to-accent/10 border-2 border-accent">
                   <div className="text-5xl mb-2">🐶</div>
-                  <div className="text-xs font-medium">Puppy</div>
+                  <div className="text-xs font-medium text-foreground">Puppy</div>
                 </div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-100 to-blue-50 border-2 border-blue-200">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 border-2 border-primary">
                   <div className="text-5xl mb-2">🐱</div>
-                  <div className="text-xs font-medium">Kitty</div>
+                  <div className="text-xs font-medium text-foreground">Kitty</div>
                 </div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-gray-100 to-gray-50 border-2 border-gray-300 opacity-50">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-muted to-muted/50 border-2 border-muted opacity-50">
                   <div className="text-5xl mb-2">🐼</div>
-                  <div className="text-xs font-medium">Locked</div>
-                  <Icon name="Lock" size={16} className="mx-auto mt-1" />
+                  <div className="text-xs font-medium text-foreground">Locked</div>
+                  <Icon name="Lock" size={16} className="mx-auto mt-1 text-muted-foreground" />
                 </div>
               </div>
             </div>
@@ -367,7 +382,7 @@ export default function Index() {
         {activeTab === 'profile' && (
           <Card className="p-8 shadow-lg border-0 bg-white/80 backdrop-blur">
             <div className="text-center space-y-6">
-              <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-4xl">
+              <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-4xl">
                 👤
               </div>
               <h2 className="text-2xl font-bold">Your Profile</h2>
@@ -377,17 +392,17 @@ export default function Index() {
                   <div className="text-xl font-bold">Beginner 🌱</div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="p-3 bg-accent/10 rounded-lg">
+                  <div className="p-3 bg-accent/20 rounded-lg border border-accent">
                     <div className="text-2xl mb-1">⭐</div>
-                    <div className="text-xs">First Session</div>
+                    <div className="text-xs text-foreground">First Session</div>
                   </div>
                   <div className="p-3 bg-muted/30 rounded-lg opacity-50">
-                    <Icon name="Lock" size={20} className="mx-auto mb-1" />
-                    <div className="text-xs">5 Sessions</div>
+                    <Icon name="Lock" size={20} className="mx-auto mb-1 text-muted-foreground" />
+                    <div className="text-xs text-muted-foreground">5 Sessions</div>
                   </div>
                   <div className="p-3 bg-muted/30 rounded-lg opacity-50">
-                    <Icon name="Lock" size={20} className="mx-auto mb-1" />
-                    <div className="text-xs">Week Streak</div>
+                    <Icon name="Lock" size={20} className="mx-auto mb-1 text-muted-foreground" />
+                    <div className="text-xs text-muted-foreground">Week Streak</div>
                   </div>
                 </div>
               </div>
@@ -396,7 +411,7 @@ export default function Index() {
         )}
 
         {activeTab === 'premium' && (
-          <Card className="p-8 shadow-lg border-0 bg-gradient-to-br from-primary/10 to-secondary/10 backdrop-blur">
+          <Card className="p-8 shadow-lg border-0 bg-gradient-to-br from-primary/20 to-accent/20 backdrop-blur">
             <div className="text-center space-y-6">
               <div className="text-5xl">👑</div>
               <h2 className="text-2xl font-bold">Premium Features</h2>
@@ -418,7 +433,7 @@ export default function Index() {
                   <span>Desktop app monitoring</span>
                 </li>
               </ul>
-              <Button className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-secondary hover:opacity-90">
+              <Button className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground">
                 Upgrade Now
               </Button>
             </div>
