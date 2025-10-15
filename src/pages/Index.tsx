@@ -5,12 +5,34 @@ import { Progress } from '@/components/ui/progress';
 import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
 
-type PetMood = 'happy' | 'focused' | 'sleep';
+type PetMood = 'happy' | 'focused' | 'sleep' | 'angry';
 type TimerStatus = 'idle' | 'running' | 'paused';
 type Tab = 'timer' | 'stats' | 'pets' | 'profile' | 'premium';
 
 const FOCUS_TIME = 25 * 60;
 const SHORT_BREAK = 5 * 60;
+
+const generateWeekData = () => {
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    return {
+      day: date.toLocaleDateString('ru-RU', { weekday: 'short' }),
+      sessions: Math.floor(Math.random() * 8) + 1
+    };
+  });
+};
+
+const generateMonthData = () => {
+  return Array.from({ length: 30 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (29 - i));
+    return {
+      day: date.getDate(),
+      sessions: Math.floor(Math.random() * 6) + 1
+    };
+  });
+};
 
 export default function Index() {
   const [activeTab, setActiveTab] = useState<Tab>('timer');
@@ -18,6 +40,11 @@ export default function Index() {
   const [timerStatus, setTimerStatus] = useState<TimerStatus>('idle');
   const [petMood, setPetMood] = useState<PetMood>('happy');
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
+  const [isDistracted, setIsDistracted] = useState(false);
+  const [lastActivity, setLastActivity] = useState(Date.now());
+  const [statsView, setStatsView] = useState<'week' | 'month'>('week');
+  const weekData = generateWeekData();
+  const monthData = generateMonthData();
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -39,6 +66,46 @@ export default function Index() {
     
     return () => clearInterval(interval);
   }, [timerStatus, timeLeft]);
+
+  useEffect(() => {
+    const handleActivity = () => {
+      setLastActivity(Date.now());
+      if (isDistracted && timerStatus === 'running') {
+        setIsDistracted(false);
+        setPetMood('focused');
+        toast.success('Отлично! Продолжаем работать! 💪');
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && timerStatus === 'running') {
+        setIsDistracted(true);
+        setPetMood('angry');
+        toast.error('Эй! Куда ушёл? Питомец злится! 😠');
+      }
+    };
+
+    const checkInactivity = setInterval(() => {
+      if (timerStatus === 'running' && Date.now() - lastActivity > 30000) {
+        if (!isDistracted) {
+          setIsDistracted(true);
+          setPetMood('angry');
+          toast.error('Мышка не двигается! Ты там? 😤');
+        }
+      }
+    }, 10000);
+
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(checkInactivity);
+    };
+  }, [timerStatus, lastActivity, isDistracted]);
 
   const handleStart = () => {
     setTimerStatus('running');
@@ -70,6 +137,7 @@ export default function Index() {
       case 'happy': return '🐶';
       case 'focused': return '🐱';
       case 'sleep': return '🐼';
+      case 'angry': return '😡';
     }
   };
 
@@ -78,6 +146,15 @@ export default function Index() {
       case 'happy': return 'Happy';
       case 'focused': return 'Focused';
       case 'sleep': return 'Sleep';
+      case 'angry': return 'Angry!';
+    }
+  };
+
+  const getPetAnimation = () => {
+    switch (petMood) {
+      case 'angry': return 'animate-shake';
+      case 'focused': return 'animate-pulse-glow';
+      default: return 'animate-bounce-in';
     }
   };
 
@@ -91,13 +168,23 @@ export default function Index() {
               <div className="flex flex-col items-center space-y-6">
                 
                 <div className="relative">
-                  <div className="w-40 h-40 rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                    <div className="text-7xl animate-scale-in">
+                  <div className={`w-40 h-40 rounded-full bg-gradient-to-br ${
+                    petMood === 'angry' 
+                      ? 'from-red-200 to-orange-200' 
+                      : 'from-primary/20 to-secondary/20'
+                  } flex items-center justify-center transition-colors duration-300 ${
+                    petMood === 'focused' ? 'animate-pulse-glow' : ''
+                  }`}>
+                    <div className={`text-7xl ${getPetAnimation()}`} key={petMood}>
                       {getPetEmoji()}
                     </div>
                   </div>
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1 bg-white rounded-full shadow-md">
-                    <span className="text-xs font-medium text-muted-foreground">{getPetLabel()}</span>
+                  <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1 ${
+                    petMood === 'angry' ? 'bg-red-100' : 'bg-white'
+                  } rounded-full shadow-md transition-colors duration-300`}>
+                    <span className={`text-xs font-medium ${
+                      petMood === 'angry' ? 'text-red-600' : 'text-muted-foreground'
+                    }`}>{getPetLabel()}</span>
                   </div>
                 </div>
 
@@ -185,23 +272,73 @@ export default function Index() {
         )}
 
         {activeTab === 'stats' && (
-          <Card className="p-8 shadow-lg border-0 bg-white/80 backdrop-blur">
-            <div className="text-center space-y-4">
-              <Icon name="BarChart3" size={48} className="mx-auto text-primary" />
-              <h2 className="text-2xl font-bold">Statistics</h2>
-              <p className="text-muted-foreground">Track your productivity and progress over time</p>
-              <div className="pt-4 space-y-3">
-                <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                  <span className="text-sm font-medium">Total Sessions</span>
-                  <span className="text-xl font-bold">{sessionsCompleted}</span>
-                </div>
-                <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
-                  <span className="text-sm font-medium">Focus Time</span>
-                  <span className="text-xl font-bold">{Math.floor(sessionsCompleted * 25 / 60)}h {(sessionsCompleted * 25) % 60}m</span>
+          <div className="space-y-4 pb-20">
+            <Card className="p-6 shadow-lg border-0 bg-white/80 backdrop-blur">
+              <div className="flex justify-center gap-2 mb-6">
+                <Button
+                  variant={statsView === 'week' ? 'default' : 'outline'}
+                  onClick={() => setStatsView('week')}
+                  className="flex-1"
+                >
+                  Week
+                </Button>
+                <Button
+                  variant={statsView === 'month' ? 'default' : 'outline'}
+                  onClick={() => setStatsView('month')}
+                  className="flex-1"
+                >
+                  Month
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-center">
+                  {statsView === 'week' ? 'This Week' : 'This Month'}
+                </h3>
+                
+                <div className="flex items-end justify-between gap-1 h-48 px-2">
+                  {(statsView === 'week' ? weekData : monthData.slice(-14)).map((item, idx) => {
+                    const maxSessions = Math.max(...(statsView === 'week' ? weekData : monthData).map(d => d.sessions));
+                    const height = (item.sessions / maxSessions) * 100;
+                    
+                    return (
+                      <div key={idx} className="flex-1 flex flex-col items-center gap-2">
+                        <div 
+                          className="w-full bg-gradient-to-t from-primary to-secondary rounded-t-lg transition-all hover:opacity-80 cursor-pointer"
+                          style={{ height: `${height}%`, minHeight: '10%' }}
+                          title={`${item.sessions} sessions`}
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {statsView === 'week' ? item.day : item.day}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+
+            <Card className="p-6 shadow-lg border-0 bg-white/80 backdrop-blur">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg">
+                  <span className="text-sm font-medium">Total Sessions</span>
+                  <span className="text-2xl font-bold text-primary">{sessionsCompleted}</span>
+                </div>
+                <div className="flex justify-between items-center p-4 bg-gradient-to-r from-secondary/10 to-secondary/5 rounded-lg">
+                  <span className="text-sm font-medium">Focus Time</span>
+                  <span className="text-2xl font-bold text-secondary">
+                    {Math.floor(sessionsCompleted * 25 / 60)}h {(sessionsCompleted * 25) % 60}m
+                  </span>
+                </div>
+                <div className="flex justify-between items-center p-4 bg-gradient-to-r from-accent/10 to-accent/5 rounded-lg">
+                  <span className="text-sm font-medium">Avg per Day</span>
+                  <span className="text-2xl font-bold text-accent">
+                    {(sessionsCompleted / 7).toFixed(1)}
+                  </span>
+                </div>
+              </div>
+            </Card>
+          </div>
         )}
 
         {activeTab === 'pets' && (
