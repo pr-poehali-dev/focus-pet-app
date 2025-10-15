@@ -6,6 +6,7 @@ import Icon from '@/components/ui/icon';
 import { toast } from 'sonner';
 
 type PetMood = 'happy' | 'focused' | 'sleep' | 'angry' | 'celebrate';
+type PetCharacter = 'dog' | 'cat' | 'panda' | 'rabbit' | 'hedgehog' | 'lizard' | 'fox';
 type TimerStatus = 'idle' | 'running' | 'paused';
 type Tab = 'timer' | 'stats' | 'pets' | 'profile' | 'premium';
 
@@ -60,6 +61,7 @@ export default function Index() {
   const [statsView, setStatsView] = useState<'week' | 'month'>('week');
   const [showRedFlash, setShowRedFlash] = useState(false);
   const [isPremium] = useState(false);
+  const [selectedPet, setSelectedPet] = useState<PetCharacter>('dog');
   const [bigTasks, setBigTasks] = useState<BigTask[]>([
     {
       id: '1',
@@ -196,13 +198,58 @@ export default function Index() {
   const progress = ((FOCUS_TIME - timeLeft) / FOCUS_TIME) * 100;
 
   const getPetImage = () => {
-    switch (petMood) {
-      case 'happy': return 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/e4e6c796-0757-4dd9-9769-c580dc64b612.jpg';
-      case 'focused': return 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/0fe02abd-035b-4ec7-8c8f-e0e7e05983fc.jpg';
-      case 'sleep': return 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/2b842f8a-6d81-4db3-bf16-c17cc2cf0bf3.jpg';
-      case 'angry': return 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/ffff47ba-b2db-4d4d-8451-27d956d48686.jpg';
-      case 'celebrate': return 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/b3e35200-f6ca-46cf-b7b6-396fa3509d7d.jpg';
-    }
+    const petImages: Record<PetCharacter, Record<PetMood, string>> = {
+      dog: {
+        happy: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/0c3b2a47-55f0-4012-a8c6-eac2977f1930.jpg',
+        focused: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/0c3b2a47-55f0-4012-a8c6-eac2977f1930.jpg',
+        sleep: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/98451da5-1bda-4d95-91d7-5db76c05138d.jpg',
+        angry: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/ad9ed8bd-5255-490a-9a92-8892cc605ae2.jpg',
+        celebrate: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/18071cab-4392-49e8-bf6d-cb7202830785.jpg'
+      },
+      cat: {
+        happy: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/77e8459d-f017-4944-937d-e0dc069100ea.jpg',
+        focused: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/77e8459d-f017-4944-937d-e0dc069100ea.jpg',
+        sleep: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/98451da5-1bda-4d95-91d7-5db76c05138d.jpg',
+        angry: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/ad9ed8bd-5255-490a-9a92-8892cc605ae2.jpg',
+        celebrate: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/18071cab-4392-49e8-bf6d-cb7202830785.jpg'
+      },
+      panda: {
+        happy: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/98451da5-1bda-4d95-91d7-5db76c05138d.jpg',
+        focused: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/98451da5-1bda-4d95-91d7-5db76c05138d.jpg',
+        sleep: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/98451da5-1bda-4d95-91d7-5db76c05138d.jpg',
+        angry: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/ad9ed8bd-5255-490a-9a92-8892cc605ae2.jpg',
+        celebrate: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/18071cab-4392-49e8-bf6d-cb7202830785.jpg'
+      },
+      rabbit: {
+        happy: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/44588783-7e83-4cdf-a7a5-e5a513b1eb78.jpg',
+        focused: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/44588783-7e83-4cdf-a7a5-e5a513b1eb78.jpg',
+        sleep: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/98451da5-1bda-4d95-91d7-5db76c05138d.jpg',
+        angry: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/ad9ed8bd-5255-490a-9a92-8892cc605ae2.jpg',
+        celebrate: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/18071cab-4392-49e8-bf6d-cb7202830785.jpg'
+      },
+      hedgehog: {
+        happy: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/5b560698-d44f-4b67-8d7a-02a8adb0a6a1.jpg',
+        focused: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/5b560698-d44f-4b67-8d7a-02a8adb0a6a1.jpg',
+        sleep: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/98451da5-1bda-4d95-91d7-5db76c05138d.jpg',
+        angry: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/ad9ed8bd-5255-490a-9a92-8892cc605ae2.jpg',
+        celebrate: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/18071cab-4392-49e8-bf6d-cb7202830785.jpg'
+      },
+      lizard: {
+        happy: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/34681f7d-fddb-4fa4-8988-2680aff469bb.jpg',
+        focused: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/34681f7d-fddb-4fa4-8988-2680aff469bb.jpg',
+        sleep: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/98451da5-1bda-4d95-91d7-5db76c05138d.jpg',
+        angry: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/ad9ed8bd-5255-490a-9a92-8892cc605ae2.jpg',
+        celebrate: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/18071cab-4392-49e8-bf6d-cb7202830785.jpg'
+      },
+      fox: {
+        happy: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/af021ce1-3dbf-47b9-a862-387140377df6.jpg',
+        focused: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/af021ce1-3dbf-47b9-a862-387140377df6.jpg',
+        sleep: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/98451da5-1bda-4d95-91d7-5db76c05138d.jpg',
+        angry: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/ad9ed8bd-5255-490a-9a92-8892cc605ae2.jpg',
+        celebrate: 'https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/18071cab-4392-49e8-bf6d-cb7202830785.jpg'
+      }
+    };
+    return petImages[selectedPet][petMood];
   };
 
   const getPetLabel = () => {
@@ -640,22 +687,130 @@ export default function Index() {
         {activeTab === 'pets' && (
           <Card className="p-8 shadow-lg border-0 bg-white/80 backdrop-blur">
             <div className="text-center space-y-6">
-              <h2 className="text-2xl font-bold">Your Pets</h2>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="p-4 rounded-xl bg-gradient-to-br from-accent/30 to-accent/10 border-2 border-accent">
-                  <div className="text-5xl mb-2">🐶</div>
-                  <div className="text-xs font-medium text-foreground">Puppy</div>
+              <h2 className="text-2xl font-bold">Выберите питомца</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <button 
+                  onClick={() => setSelectedPet('dog')}
+                  className={`p-4 rounded-2xl bg-gradient-to-br transition-all hover:scale-105 ${
+                    selectedPet === 'dog' 
+                      ? 'from-accent to-accent/50 border-4 border-accent shadow-xl' 
+                      : 'from-accent/30 to-accent/10 border-2 border-accent/50'
+                  }`}
+                >
+                  <img 
+                    src="https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/0c3b2a47-55f0-4012-a8c6-eac2977f1930.jpg" 
+                    alt="Dog"
+                    className="w-full aspect-square object-cover rounded-xl mb-2"
+                  />
+                  <div className="text-sm font-bold text-foreground">Собачка</div>
+                </button>
+                
+                <button 
+                  onClick={() => setSelectedPet('cat')}
+                  className={`p-4 rounded-2xl bg-gradient-to-br transition-all hover:scale-105 ${
+                    selectedPet === 'cat' 
+                      ? 'from-primary to-primary/50 border-4 border-primary shadow-xl' 
+                      : 'from-primary/30 to-primary/10 border-2 border-primary/50'
+                  }`}
+                >
+                  <img 
+                    src="https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/77e8459d-f017-4944-937d-e0dc069100ea.jpg" 
+                    alt="Cat"
+                    className="w-full aspect-square object-cover rounded-xl mb-2"
+                  />
+                  <div className="text-sm font-bold text-foreground">Котик</div>
+                </button>
+                
+                <button 
+                  onClick={() => setSelectedPet('panda')}
+                  className={`p-4 rounded-2xl bg-gradient-to-br transition-all hover:scale-105 ${
+                    selectedPet === 'panda' 
+                      ? 'from-purple-400 to-purple-200 border-4 border-purple-400 shadow-xl' 
+                      : 'from-purple-400/30 to-purple-200/10 border-2 border-purple-400/50'
+                  }`}
+                >
+                  <img 
+                    src="https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/98451da5-1bda-4d95-91d7-5db76c05138d.jpg" 
+                    alt="Panda"
+                    className="w-full aspect-square object-cover rounded-xl mb-2"
+                  />
+                  <div className="text-sm font-bold text-foreground">Панда</div>
+                </button>
+
+                <div className={`p-4 rounded-2xl bg-gradient-to-br transition-all ${
+                  isPremium 
+                    ? 'from-pink-400/30 to-pink-200/10 border-2 border-pink-400/50 hover:scale-105 cursor-pointer' 
+                    : 'from-muted to-muted/50 border-2 border-muted opacity-50'
+                }`}
+                onClick={() => isPremium ? setSelectedPet('rabbit') : setActiveTab('premium')}>
+                  <img 
+                    src="https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/44588783-7e83-4cdf-a7a5-e5a513b1eb78.jpg" 
+                    alt="Rabbit"
+                    className="w-full aspect-square object-cover rounded-xl mb-2 blur-sm"
+                  />
+                  <div className="text-sm font-bold text-foreground">Зайчик</div>
+                  {!isPremium && <Icon name="Lock" size={16} className="mx-auto mt-1 text-muted-foreground" />}
                 </div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 border-2 border-primary">
-                  <div className="text-5xl mb-2">🐱</div>
-                  <div className="text-xs font-medium text-foreground">Kitty</div>
+
+                <div className={`p-4 rounded-2xl bg-gradient-to-br transition-all ${
+                  isPremium 
+                    ? 'from-orange-400/30 to-orange-200/10 border-2 border-orange-400/50 hover:scale-105 cursor-pointer' 
+                    : 'from-muted to-muted/50 border-2 border-muted opacity-50'
+                }`}
+                onClick={() => isPremium ? setSelectedPet('hedgehog') : setActiveTab('premium')}>
+                  <img 
+                    src="https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/5b560698-d44f-4b67-8d7a-02a8adb0a6a1.jpg" 
+                    alt="Hedgehog"
+                    className="w-full aspect-square object-cover rounded-xl mb-2 blur-sm"
+                  />
+                  <div className="text-sm font-bold text-foreground">Ёжик</div>
+                  {!isPremium && <Icon name="Lock" size={16} className="mx-auto mt-1 text-muted-foreground" />}
                 </div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-muted to-muted/50 border-2 border-muted opacity-50">
-                  <div className="text-5xl mb-2">🐼</div>
-                  <div className="text-xs font-medium text-foreground">Locked</div>
-                  <Icon name="Lock" size={16} className="mx-auto mt-1 text-muted-foreground" />
+
+                <div className={`p-4 rounded-2xl bg-gradient-to-br transition-all ${
+                  isPremium 
+                    ? 'from-green-400/30 to-green-200/10 border-2 border-green-400/50 hover:scale-105 cursor-pointer' 
+                    : 'from-muted to-muted/50 border-2 border-muted opacity-50'
+                }`}
+                onClick={() => isPremium ? setSelectedPet('lizard') : setActiveTab('premium')}>
+                  <img 
+                    src="https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/34681f7d-fddb-4fa4-8988-2680aff469bb.jpg" 
+                    alt="Lizard"
+                    className="w-full aspect-square object-cover rounded-xl mb-2 blur-sm"
+                  />
+                  <div className="text-sm font-bold text-foreground">Ящерка</div>
+                  {!isPremium && <Icon name="Lock" size={16} className="mx-auto mt-1 text-muted-foreground" />}
+                </div>
+
+                <div className={`p-4 rounded-2xl bg-gradient-to-br transition-all ${
+                  isPremium 
+                    ? 'from-red-400/30 to-orange-200/10 border-2 border-red-400/50 hover:scale-105 cursor-pointer' 
+                    : 'from-muted to-muted/50 border-2 border-muted opacity-50'
+                }`}
+                onClick={() => isPremium ? setSelectedPet('fox') : setActiveTab('premium')}>
+                  <img 
+                    src="https://cdn.poehali.dev/projects/0f026463-f3ed-4a57-8beb-3cb2590439f1/files/af021ce1-3dbf-47b9-a862-387140377df6.jpg" 
+                    alt="Fox"
+                    className="w-full aspect-square object-cover rounded-xl mb-2 blur-sm"
+                  />
+                  <div className="text-sm font-bold text-foreground">Лисичка</div>
+                  {!isPremium && <Icon name="Lock" size={16} className="mx-auto mt-1 text-muted-foreground" />}
                 </div>
               </div>
+              
+              {!isPremium && (
+                <div className="mt-6 p-4 bg-gradient-to-r from-accent/20 to-primary/20 rounded-xl border border-accent/50">
+                  <p className="text-sm font-medium text-foreground">
+                    🎁 Разблокируйте ещё 4 милых персонажа с Premium подпиской!
+                  </p>
+                  <Button 
+                    onClick={() => setActiveTab('premium')}
+                    className="mt-3 bg-gradient-to-r from-accent to-primary hover:shadow-lg"
+                  >
+                    Перейти к Premium
+                  </Button>
+                </div>
+              )}
             </div>
           </Card>
         )}
